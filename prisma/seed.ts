@@ -78,33 +78,34 @@ async function main() {
     })
   }
 
-  // Sample hosts: <3-letter-code>pos<registerid>
+  // Sample hosts: always UPPERCASE <CODE>POS<registerid>
   const sampleHosts = [
-    'APPpos001', // G1 — store 100
-    'APPpos015', // G1
-    'APPpos045', // G1 — simulate install-fail/rollback demo
-    'FDLpos001', // G1 — store 200
-    'FDLpos100', // G2
-    'MARpos110', // G3 — store 300
-    'WASpos150', // G4 — store 400
-    'FEFpos260', // G5 — store 500
-    'ALXpos360', // G6 — store 700
-    'GBEpos470', // G7 — store 800
-    'MENpos570', // G8 — store 900
-    'BEDpos680', // G9 — store 1000
-    'PLYpos790', // G10 — store 1100
-    'WAPpos796', // Attendant Station — store 1200
-    'MANpos801', // SCO Register — store 1300
-    'HUDpos830', // G11 — store 1400
-    'STPpos930', // G12 — store 1500
+    'APPPOS001', // G1 — store 100
+    'APPPOS015', // G1
+    'APPPOS045', // G1 — simulate install-fail/rollback demo
+    'FDLPOS001', // G1 — store 200
+    'FDLPOS100', // G2
+    'MARPOS110', // G3 — store 300
+    'WASPOS150', // G4 — store 400
+    'FEFPOS260', // G5 — store 500
+    'ALXPOS360', // G6 — store 700
+    'GBEPOS470', // G7 — store 800
+    'MENPOS570', // G8 — store 900
+    'BEDPOS680', // G9 — store 1000
+    'PLYPOS790', // G10 — store 1100
+    'WAPPOS796', // Attendant Station — store 1200
+    'MANPOS801', // SCO Register — store 1300
+    'HUDPOS830', // G11 — store 1400
+    'STPPOS930', // G12 — store 1500
   ]
 
-  for (const hostname of sampleHosts) {
-    const parsed = parseHostname(hostname)
+  for (const raw of sampleHosts) {
+    const parsed = parseHostname(raw)
     if (!parsed) {
-      console.warn(`Skipping invalid hostname: ${hostname}`)
+      console.warn(`Skipping invalid hostname: ${raw}`)
       continue
     }
+    const hostname = parsed.hostname
     const store = await prisma.store.findUnique({ where: { storeCode: parsed.storeCode } })
     if (!store) {
       console.warn(`No catalog store for code ${parsed.storeCode}`)
@@ -137,12 +138,25 @@ async function main() {
     })
   }
 
-  // Remove legacy machines that do not use 3-letter store codes (e.g. 1234pos001)
-  const machines = await prisma.machine.findMany()
-  for (const machine of machines) {
-    if (!/^[A-Za-z]{3}pos\d+/i.test(machine.hostname)) {
+  // Normalize any mixed-case hostnames to UPPERCASE; drop invalid legacy hosts
+  for (const machine of await prisma.machine.findMany()) {
+    const parsed = parseHostname(machine.hostname)
+    if (!parsed) {
       await prisma.deploymentJobTarget.deleteMany({ where: { machineId: machine.id } })
       await prisma.machine.delete({ where: { id: machine.id } })
+      continue
+    }
+    if (machine.hostname !== parsed.hostname) {
+      const clash = await prisma.machine.findUnique({ where: { hostname: parsed.hostname } })
+      if (clash && clash.id !== machine.id) {
+        await prisma.deploymentJobTarget.deleteMany({ where: { machineId: machine.id } })
+        await prisma.machine.delete({ where: { id: machine.id } })
+      } else {
+        await prisma.machine.update({
+          where: { id: machine.id },
+          data: { hostname: parsed.hostname },
+        })
+      }
     }
   }
 
@@ -161,7 +175,7 @@ async function main() {
   console.log(`Stores: ${await prisma.store.count()} (3-letter hostname codes)`)
   console.log(`Machines: ${await prisma.machine.count()}`)
   console.log(`Register groups: ${rules.length}`)
-  console.log('Hostname format: <CODE>pos<registerid> e.g. APPpos001')
+  console.log('Hostname format: <CODE>POS<registerid> e.g. APPPOS001 (always UPPERCASE)')
 }
 
 main()

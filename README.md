@@ -47,10 +47,10 @@ npm run dev
 
 ## Hostname / store codes
 
-Registers use a **3-letter store code** in the hostname:
+Registers use a **3-letter store code** in the hostname (always **UPPERCASE**):
 
 ```text
-<CODE>pos<registerid>   e.g. APPpos001  (store 100 / APP)
+<CODE>POS<registerid>   e.g. APPPOS001  (store 100 / APP)
 ```
 
 Store master list (numeric id → code) lives in `packages/shared` as `STORE_CATALOG` and is seeded into the `Store` table.

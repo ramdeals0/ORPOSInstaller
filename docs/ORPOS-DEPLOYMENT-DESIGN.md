@@ -46,12 +46,13 @@ MVP auth: local app users (username/password + role) behind internal network. Ph
 **Hostname convention**
 
 ```
-<StoreCode>pos<registerid>
+<StoreCode>POS<registerid>
 ```
 
-`StoreCode` is the **3-letter** store code from the store master list (mapped from numeric store id).
+`StoreCode` is the **3-letter** store code from the store master list (mapped from numeric store id).  
+Hostnames are always stored and displayed in **UPPERCASE**.
 
-Examples: `APPpos001` (store 100), `FDLpos150` (store 200), `OSHpos801` (store 1700)
+Examples: `APPPOS001` (store 100), `FDLPOS150` (store 200), `OSHPOS801` (store 1700)
 
 **Default register grouping (configurable in Settings)**
 
@@ -698,10 +699,11 @@ model AuditEvent {
 ### 4.4 Hostname parsing
 
 ```
-^(?<storeCode>[A-Za-z]{3})pos(?<registerId>\d{3,})$
+^(?<storeCode>[A-Za-z]{3})pos(?<registerId>\d{3,})$   (case-insensitive parse)
+→ canonical hostname: STORECODE + POS + padded register id  (e.g. APPPOS001)
 ```
 
-- Parse 3-letter `storeCode` (uppercased), integer `registerId`, padded string.
+- Parse 3-letter `storeCode`, integer `registerId`, padded string; **normalize hostname to UPPERCASE**.
 - Look up numeric `storeNumber` from store catalog (e.g. APP → 100).
 - Resolve `registerGroupName` via active `RegisterGroupRule` where `minRegId ≤ registerId ≤ maxRegId`, lowest `priority` wins.
 - Unmatched register range → group `"Unassigned"`.

@@ -19,11 +19,12 @@ export async function upsertMachineFromHostname(
 ) {
   const parsed = parseHostname(hostname)
   if (!parsed) {
-    throw new Error(`Invalid hostname format: ${hostname}. Expected <Storeid>pos<registerid>`)
+    throw new Error(`Invalid hostname format: ${hostname}. Expected <CODE>POS<registerid> e.g. APPPOS001`)
   }
 
   const rules = await getActiveGroupRules(prisma)
   const registerGroupName = resolveRegisterGroup(parsed.registerId, rules)
+  const canonical = parsed.hostname // always UPPERCASE
 
   const storeNumber = storeNumberFromCode(parsed.storeCode) ?? null
   const store = await prisma.store.upsert({
@@ -40,7 +41,7 @@ export async function upsertMachineFromHostname(
   })
 
   return prisma.machine.upsert({
-    where: { hostname },
+    where: { hostname: canonical },
     update: {
       storeId: store.id,
       registerId: parsed.registerId,
@@ -51,7 +52,7 @@ export async function upsertMachineFromHostname(
       isActive: extras.isActive ?? undefined,
     },
     create: {
-      hostname,
+      hostname: canonical,
       storeId: store.id,
       registerId: parsed.registerId,
       registerIdPadded: parsed.registerIdPadded,

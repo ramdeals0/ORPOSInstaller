@@ -17,13 +17,23 @@ export const STEP_KEYS = [
 
 export type StepKey = (typeof STEP_KEYS)[number]
 
-/** Hostname: <3-letter-store-code>pos<registerid> e.g. APPpos001 */
+/** Hostname: <3-letter-store-code>POS<registerid> — always stored UPPERCASE, e.g. APPPOS001 */
 export const HOSTNAME_REGEX = /^(?<storeCode>[A-Za-z]{3})pos(?<registerId>\d{3,})$/i
 
 export interface ParsedHostname {
   storeCode: string
   registerId: number
   registerIdPadded: string
+  /** Canonical uppercase hostname, e.g. APPPOS001 */
+  hostname: string
+}
+
+export function normalizeHostname(hostname: string): string {
+  return hostname.trim().toUpperCase()
+}
+
+export function formatHostname(storeCode: string, registerId: number): string {
+  return `${storeCode.toUpperCase()}POS${String(registerId).padStart(3, '0')}`
 }
 
 export function parseHostname(hostname: string): ParsedHostname | null {
@@ -31,10 +41,13 @@ export function parseHostname(hostname: string): ParsedHostname | null {
   if (!match?.groups) return null
   const registerId = Number(match.groups.registerId)
   if (!Number.isFinite(registerId)) return null
+  const storeCode = match.groups.storeCode.toUpperCase()
+  const registerIdPadded = String(registerId).padStart(3, '0')
   return {
-    storeCode: match.groups.storeCode.toUpperCase(),
+    storeCode,
     registerId,
-    registerIdPadded: String(registerId).padStart(3, '0'),
+    registerIdPadded,
+    hostname: `${storeCode}POS${registerIdPadded}`,
   }
 }
 

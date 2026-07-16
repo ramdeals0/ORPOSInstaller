@@ -81,7 +81,7 @@ export async function machineRoutes(app: FastifyInstance) {
 
   app.post('/api/v1/machines', { preHandler: requireAdmin }, async (request) => {
     const body = z.object({
-      hostname: z.string().min(1),
+      hostname: z.string().min(1).transform((s) => s.trim().toUpperCase()),
       fqdnOrIp: z.string().optional(),
       notes: z.string().optional(),
       isActive: z.boolean().optional(),
@@ -111,7 +111,7 @@ export async function machineRoutes(app: FastifyInstance) {
     }).parse(request.body)
     const machines = []
     for (const hostname of body.hostnames) {
-      machines.push(await upsertMachineFromHostname(prisma, hostname.trim()))
+      machines.push(await upsertMachineFromHostname(prisma, hostname.trim().toUpperCase()))
     }
     return { imported: machines.length, machines }
   })
