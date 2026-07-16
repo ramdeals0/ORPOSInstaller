@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import bcrypt from 'bcryptjs'
 import {
   DEFAULT_REGISTER_GROUP_RULES,
