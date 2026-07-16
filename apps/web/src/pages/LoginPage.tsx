@@ -44,7 +44,10 @@ export function LoginPage() {
         <button className="primary" disabled={busy} type="submit">
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
-        <p className="muted mono">admin/admin123 · operator/operator123</p>
+        <p className="muted mono">Default: admin / admin123</p>
+        <p className="muted" style={{ margin: 0, fontSize: '0.8rem' }}>
+          If login fails after a fresh clone, run <span className="mono">npm run db:seed</span> then restart <span className="mono">npm run dev</span>.
+        </p>
       </form>
     </div>
   )

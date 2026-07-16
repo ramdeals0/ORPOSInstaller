@@ -8,6 +8,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import { AppError, errorBody } from './lib/errors.js'
+import { ensureSeed } from './lib/ensureSeed.js'
 import { authRoutes } from './routes/auth.js'
 import { machineRoutes } from './routes/machines.js'
 import { deploymentRoutes } from './routes/deployments.js'
@@ -16,8 +17,18 @@ import { settingsRoutes } from './routes/settings.js'
 
 const app = Fastify({ logger: true })
 
+try {
+  const seed = await ensureSeed()
+  if (seed.seeded) {
+    app.log.warn('Empty database detected — created default users admin/admin123 and operator/operator123')
+  }
+} catch (err) {
+  app.log.error({ err }, 'Failed to ensure seed data — login may fail until migrations/seed are run')
+}
+
 await app.register(cors, {
-  origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+  // Internal tool: allow local Vite and cloud-agent preview origins
+  origin: true,
   credentials: true,
 })
 

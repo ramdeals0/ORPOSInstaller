@@ -15,9 +15,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const res = await fetch(path, { ...init, headers })
+  let res: Response
+  try {
+    res = await fetch(path, { ...init, headers })
+  } catch {
+    throw new Error(
+      'Cannot reach API. Start the stack with `npm run dev` (API on :3001, UI on :5173).',
+    )
+  }
   if (!res.ok) {
-    let message = res.statusText
+    let message = res.statusText || `HTTP ${res.status}`
     try {
       const body = await res.json()
       message = body?.error?.message ?? message
