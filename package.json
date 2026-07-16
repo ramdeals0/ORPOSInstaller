@@ -1,0 +1,38 @@
+{
+  "name": "orpos-installer",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web,worker -c blue,green,magenta \"npm run dev -w @orpos/api\" \"npm run dev -w @orpos/web\" \"npm run dev -w @orpos/worker\"",
+    "dev:api": "npm run dev -w @orpos/api",
+    "dev:web": "npm run dev -w @orpos/web",
+    "dev:worker": "npm run dev -w @orpos/worker",
+    "build": "npm run build -w @orpos/shared && npm run build -w @orpos/api && npm run build -w @orpos/worker && npm run build -w @orpos/web",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.30",
+    "concurrently": "^9.2.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
