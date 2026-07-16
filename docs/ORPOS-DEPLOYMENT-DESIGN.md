@@ -46,17 +46,34 @@ MVP auth: local app users (username/password + role) behind internal network. Ph
 **Hostname convention**
 
 ```
-<Storeid>pos<registerid>
+<StoreCode>POS<registerid>
 ```
 
-Examples: `1234pos001`, `1234pos150`
+`StoreCode` is the **3-letter** store code from the store master list (mapped from numeric store id).  
+Hostnames are always stored and displayed in **UPPERCASE**.
+
+Examples: `APPPOS001` (store 100), `FDLPOS150` (store 200), `OSHPOS801` (store 1700)
 
 **Default register grouping (configurable in Settings)**
 
-| Register ID range | Group |
-|---|---|
-| 001–050 | Front End Registers |
-| 150–200 | Service Desk |
+Sourced from ORPOS `application.xml` `RegisterGroups` (`RegisterG1`–`RegisterG14`):
+
+| Parameter | Register ID range | Group name |
+|---|---|---|
+| RegisterG1 | 001–050 | RegisterG1 |
+| RegisterG2 | 100–109 | RegisterG2 |
+| RegisterG3 | 110–115 | RegisterG3 |
+| RegisterG4 | 150–159 | RegisterG4 |
+| RegisterG5 | 260–269 | RegisterG5 |
+| RegisterG6 | 360–369 | RegisterG6 |
+| RegisterG7 | 470–479 | RegisterG7 |
+| RegisterG8 | 570–579 | RegisterG8 |
+| RegisterG9 | 680–689 | RegisterG9 |
+| RegisterG10 | 790–795 | RegisterG10 |
+| RegisterG11 | 830–839 | RegisterG11 |
+| RegisterG12 | 930–939 | RegisterG12 |
+| RegisterG13 | 801–829 | SCO Register |
+| RegisterG14 | 796–800 | Attendant Station |
 
 **Protected install path**
 
@@ -124,7 +141,7 @@ C:\OracleRetailStore\CLIENT_<DATE>
 | 1 | Machine reachable (ICMP/TCP probe as configured) | Yes |
 | 2 | WinRM session can be established | Yes |
 | 3 | Installer ZIP path exists (from worker host) | Yes |
-| 4 | `ant.installer.properties` source path exists | Yes |
+| 4 | `ant.installer.properties` exists as a **local file on the target host** | Yes |
 | 5 | Remote copy path exists or can be created | Yes |
 | 6 | Remote unzip path exists or can be created | Yes |
 | 7 | Current install path exists | Yes (for non-dry-run install; dry-run still reports) |
@@ -682,12 +699,14 @@ model AuditEvent {
 ### 4.4 Hostname parsing
 
 ```
-^(?<storeCode>.+?)pos(?<registerId>\d{3,})$
+^(?<storeCode>[A-Za-z]{3})pos(?<registerId>\d{3,})$   (case-insensitive parse)
+→ canonical hostname: STORECODE + POS + padded register id  (e.g. APPPOS001)
 ```
 
-- Parse `storeCode`, integer `registerId`, padded string.
+- Parse 3-letter `storeCode`, integer `registerId`, padded string; **normalize hostname to UPPERCASE**.
+- Look up numeric `storeNumber` from store catalog (e.g. APP → 100).
 - Resolve `registerGroupName` via active `RegisterGroupRule` where `minRegId ≤ registerId ≤ maxRegId`, lowest `priority` wins.
-- Unmatched → group `"Unassigned"`.
+- Unmatched register range → group `"Unassigned"`.
 
 ---
 
@@ -1410,8 +1429,20 @@ Use these as sequential Cursor tasks after this design is accepted:
 ```json
 {
   "registerGroupRules": [
-    { "name": "Front End Registers", "minRegId": 1, "maxRegId": 50, "priority": 10 },
-    { "name": "Service Desk", "minRegId": 150, "maxRegId": 200, "priority": 10 }
+    { "name": "RegisterG1", "minRegId": 1, "maxRegId": 50, "priority": 1 },
+    { "name": "RegisterG2", "minRegId": 100, "maxRegId": 109, "priority": 2 },
+    { "name": "RegisterG3", "minRegId": 110, "maxRegId": 115, "priority": 3 },
+    { "name": "RegisterG4", "minRegId": 150, "maxRegId": 159, "priority": 4 },
+    { "name": "RegisterG5", "minRegId": 260, "maxRegId": 269, "priority": 5 },
+    { "name": "RegisterG6", "minRegId": 360, "maxRegId": 369, "priority": 6 },
+    { "name": "RegisterG7", "minRegId": 470, "maxRegId": 479, "priority": 7 },
+    { "name": "RegisterG8", "minRegId": 570, "maxRegId": 579, "priority": 8 },
+    { "name": "RegisterG9", "minRegId": 680, "maxRegId": 689, "priority": 9 },
+    { "name": "RegisterG10", "minRegId": 790, "maxRegId": 795, "priority": 10 },
+    { "name": "RegisterG11", "minRegId": 830, "maxRegId": 839, "priority": 11 },
+    { "name": "RegisterG12", "minRegId": 930, "maxRegId": 939, "priority": 12 },
+    { "name": "SCO Register", "minRegId": 801, "maxRegId": 829, "priority": 13 },
+    { "name": "Attendant Station", "minRegId": 796, "maxRegId": 800, "priority": 14 }
   ],
   "defaultPaths": {
     "currentInstallPath": "C:\\OracleRetailStore\\CLIENT",
