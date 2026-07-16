@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../../../generated/prisma/client'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -23,8 +24,18 @@ let prisma: PrismaClient | undefined
 
 export function createPrismaClient(): PrismaClient {
   const url = resolveDatabaseUrl()
-  const adapter = new PrismaBetterSqlite3({ url })
-  return new PrismaClient({ adapter })
+  let adapter: unknown
+
+  if (url.startsWith('file:')) {
+    adapter = new PrismaBetterSqlite3({ url })
+  } else if (url.startsWith('postgresql:') || url.startsWith('postgres://')) {
+    // PrismaPg accepts a connection string directly.
+    adapter = new PrismaPg(url)
+  } else {
+    throw new Error(`Unsupported DATABASE_URL scheme for driver adapter: ${url}`)
+  }
+
+  return new PrismaClient({ adapter: adapter as never })
 }
 
 export function getPrisma(): PrismaClient {

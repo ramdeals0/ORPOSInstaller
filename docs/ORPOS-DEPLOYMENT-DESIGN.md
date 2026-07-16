@@ -96,7 +96,7 @@ C:\OracleRetailStore\CLIENT_<DATE>
 3. Rename `CLIENT` → `CLIENT_<DATE>`
 4. Copy installer ZIP to remote copy path
 5. Unzip to remote extract path
-6. Copy `ant.installer.properties` into root of unzipped installer
+6. On the target host, copy local `ant.installer.properties` into root of unzipped installer
 7. Run `install.cmd silent`
 8. Inspect ORPOS deployment log for success pattern
 9. On failure: rename backup folder back to `CLIENT`
@@ -126,7 +126,7 @@ C:\OracleRetailStore\CLIENT_<DATE>
 |---|---|
 | Release number | Free text / semver-like string, e.g. `13.4.9` |
 | Installer network path | Always a ZIP; UNC or server-local path visible to worker |
-| `ant.installer.properties` source path | Copied into extracted installer root |
+| `ant.installer.properties` path | **Local path on each target host** (e.g. `C:\OracleRetailStore\ant.installer.properties`). Verified on the register via WinRM, then copied into the extracted installer root on that same machine. Not a UNC path on the deploy server. |
 | Remote copy path | Destination for ZIP on target |
 | Remote unzip/extract path | Destination for extracted files |
 | Current install path | Default `C:\OracleRetailStore\CLIENT` |
@@ -1016,7 +1016,7 @@ On failure → target `PRECHECK_FAILED` / connection error; release lease; do no
 **Local to worker**
 
 - `Test-Path` installer ZIP
-- `Test-Path` ant.installer.properties
+- `Test-Path` ant.installer.properties **on the remote target** (local host path)
 - Compute ZIP size; estimate extract size
 
 **Remote via `Invoke-Command`**
@@ -1196,7 +1196,7 @@ Design language: **internal utility dashboard** — not a marketing landing page
 1. **Release & artifacts**
    - Release number
    - Installer ZIP path (with “test path” helper)
-   - ant.installer.properties path
+   - ant.installer.properties path (local on target host; default `C:\OracleRetailStore\ant.installer.properties`)
 2. **Remote paths**
    - Remote copy path
    - Remote unzip path
