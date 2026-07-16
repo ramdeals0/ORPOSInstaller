@@ -64,6 +64,9 @@ export function SettingsPage() {
 
       <div className="panel stack">
         <h3>Register grouping rules</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          Defaults match ORPOS <span className="mono">RegisterGroups</span> (RegisterG1–G14) from application.xml.
+        </p>
         {rules.map((rule, idx) => (
           <div className="form-grid" key={`${rule.name}-${idx}`}>
             <label>Name<input disabled={!canEdit} value={rule.name} onChange={(e) => {
@@ -80,7 +83,19 @@ export function SettingsPage() {
             }} /></label>
           </div>
         ))}
-        {canEdit && <button className="primary" type="button" onClick={() => saveRules().catch((e) => setError(e.message))}>Save grouping rules</button>}
+        {canEdit && (
+          <div className="row">
+            <button
+              type="button"
+              onClick={() => setRules([...rules, { name: 'NewGroup', minRegId: 0, maxRegId: 0, priority: rules.length + 1, isActive: true }])}
+            >
+              Add rule
+            </button>
+            <button className="primary" type="button" onClick={() => saveRules().catch((e) => setError(e.message))}>
+              Save grouping rules
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="panel stack">

@@ -1,5 +1,10 @@
 import bcrypt from 'bcryptjs'
-import { DEFAULT_SETTINGS, parseHostname, resolveRegisterGroup } from '../packages/shared/src/index.ts'
+import {
+  DEFAULT_REGISTER_GROUP_RULES,
+  DEFAULT_SETTINGS,
+  parseHostname,
+  resolveRegisterGroup,
+} from '../packages/shared/src/index.ts'
 import { createPrismaClient } from '../packages/db/src/index.ts'
 
 const prisma = createPrismaClient()
@@ -40,10 +45,7 @@ async function main() {
     },
   })
 
-  const rules = [
-    { name: 'Front End Registers', minRegId: 1, maxRegId: 50, priority: 10 },
-    { name: 'Service Desk', minRegId: 150, maxRegId: 200, priority: 10 },
-  ]
+  const rules = DEFAULT_REGISTER_GROUP_RULES.map((r) => ({ ...r }))
 
   await prisma.registerGroupRule.deleteMany()
   for (const rule of rules) {
@@ -58,17 +60,25 @@ async function main() {
     })
   }
 
+  // Sample hosts covering multiple RegisterG* ranges from application.xml
   const sampleHosts = [
-    '1234pos001',
-    '1234pos002',
-    '1234pos015',
-    '1234pos150',
-    '1234pos151',
-    '5678pos001',
-    '5678pos045',
-    '5678pos160',
-    '9012pos010',
-    '9012pos200',
+    '1234pos001', // G1
+    '1234pos015', // G1
+    '1234pos050', // G1
+    '1234pos100', // G2
+    '1234pos110', // G3
+    '1234pos150', // G4
+    '1234pos260', // G5
+    '5678pos360', // G6
+    '5678pos470', // G7
+    '5678pos570', // G8
+    '5678pos680', // G9
+    '9012pos790', // G10
+    '9012pos796', // Attendant Station (G14)
+    '9012pos801', // SCO Register (G13)
+    '9012pos830', // G11
+    '9012pos930', // G12
+    '5678pos045', // G1 — used by simulate worker for install-fail/rollback demo
   ]
 
   for (const hostname of sampleHosts) {
@@ -106,7 +116,23 @@ async function main() {
     })
   }
 
+  // Recompute groups for every machine (including leftover inventory)
+  const allMachines = await prisma.machine.findMany()
+  let recomputed = 0
+  for (const machine of allMachines) {
+    const group = resolveRegisterGroup(machine.registerId, rules)
+    if (group !== machine.registerGroupName) {
+      await prisma.machine.update({
+        where: { id: machine.id },
+        data: { registerGroupName: group },
+      })
+      recomputed += 1
+    }
+  }
+
   console.log('Seed complete. Users: admin/admin123, operator/operator123, auditor/auditor123')
+  console.log(`Register groups: ${rules.length} (RegisterG1–G14 from ORPOS application.xml)`)
+  console.log(`Recomputed groups on ${recomputed}/${allMachines.length} machines`)
 }
 
 main()

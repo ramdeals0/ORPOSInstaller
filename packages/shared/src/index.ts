@@ -74,6 +74,27 @@ export function previewBackupPath(installPath: string, rule: string, date = new 
   return `${parent}${sep}${formatBackupName(rule, date)}`
 }
 
+/**
+ * Register group ranges from ORPOS application.xml RegisterGroups
+ * (RegisterG1–RegisterG14 EnumeratedListValidator member pairs).
+ */
+export const DEFAULT_REGISTER_GROUP_RULES = [
+  { name: 'RegisterG1', minRegId: 1, maxRegId: 50, priority: 1 },
+  { name: 'RegisterG2', minRegId: 100, maxRegId: 109, priority: 2 },
+  { name: 'RegisterG3', minRegId: 110, maxRegId: 115, priority: 3 },
+  { name: 'RegisterG4', minRegId: 150, maxRegId: 159, priority: 4 },
+  { name: 'RegisterG5', minRegId: 260, maxRegId: 269, priority: 5 },
+  { name: 'RegisterG6', minRegId: 360, maxRegId: 369, priority: 6 },
+  { name: 'RegisterG7', minRegId: 470, maxRegId: 479, priority: 7 },
+  { name: 'RegisterG8', minRegId: 570, maxRegId: 579, priority: 8 },
+  { name: 'RegisterG9', minRegId: 680, maxRegId: 689, priority: 9 },
+  { name: 'RegisterG10', minRegId: 790, maxRegId: 795, priority: 10 },
+  { name: 'RegisterG11', minRegId: 830, maxRegId: 839, priority: 11 },
+  { name: 'RegisterG12', minRegId: 930, maxRegId: 939, priority: 12 },
+  { name: 'SCO Register', minRegId: 801, maxRegId: 829, priority: 13 }, // RegisterG13
+  { name: 'Attendant Station', minRegId: 796, maxRegId: 800, priority: 14 }, // RegisterG14
+] as const
+
 export const DEFAULT_SETTINGS = {
   defaultPaths: {
     currentInstallPath: DEFAULT_INSTALL_PATH,
@@ -111,6 +132,7 @@ export const DEFAULT_SETTINGS = {
   },
   retention: { jobDays: 180, logDays: 90 },
   reachability: { probeIntervalMinutes: 30 },
+  registerGroupRules: DEFAULT_REGISTER_GROUP_RULES,
 } as const
 
 export type DefaultSettings = typeof DEFAULT_SETTINGS

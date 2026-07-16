@@ -21,6 +21,7 @@ export function MachinesPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<Machine[]>([])
   const [stores, setStores] = useState<Array<{ id: string; storeCode: string }>>([])
+  const [groups, setGroups] = useState<string[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<Machine | null>(null)
   const [error, setError] = useState('')
@@ -45,6 +46,9 @@ export function MachinesPage() {
     Promise.all([
       load(),
       api<{ stores: Array<{ id: string; storeCode: string }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
+      api<{ rules: Array<{ name: string }> }>('/api/v1/settings/register-group-rules').then((r) =>
+        setGroups(r.rules.map((rule) => rule.name)),
+      ),
     ]).catch((e) => setError(e.message))
   }, [])
 
@@ -105,9 +109,8 @@ export function MachinesPage() {
           <label>Group
             <select value={filters.registerGroup} onChange={(e) => setFilters({ ...filters, registerGroup: e.target.value })}>
               <option value="">All</option>
-              <option>Front End Registers</option>
-              <option>Service Desk</option>
-              <option>Unassigned</option>
+              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+              <option value="Unassigned">Unassigned</option>
             </select>
           </label>
           <label>Reg min<input value={filters.registerIdMin} onChange={(e) => setFilters({ ...filters, registerIdMin: e.target.value })} /></label>

@@ -32,6 +32,7 @@ export function NewDeploymentPage() {
 
   const [machines, setMachines] = useState<Machine[]>([])
   const [stores, setStores] = useState<Array<{ id: string; storeCode: string }>>([])
+  const [groups, setGroups] = useState<string[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set(preselected))
   const [storeFilter, setStoreFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
@@ -57,6 +58,9 @@ export function NewDeploymentPage() {
     Promise.all([
       api<{ items: Machine[] }>('/api/v1/machines?pageSize=200').then((r) => setMachines(r.items)),
       api<{ stores: Array<{ id: string; storeCode: string }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
+      api<{ rules: Array<{ name: string }> }>('/api/v1/settings/register-group-rules').then((r) =>
+        setGroups(r.rules.map((rule) => rule.name)),
+      ),
     ]).catch((e) => setError(e.message))
   }, [])
 
@@ -188,8 +192,7 @@ export function NewDeploymentPage() {
           <label>Register group
             <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
               <option value="">All groups</option>
-              <option>Front End Registers</option>
-              <option>Service Desk</option>
+              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </label>
           <div className="row" style={{ alignItems: 'end' }}>
