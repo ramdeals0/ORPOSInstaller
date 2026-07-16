@@ -255,8 +255,16 @@ export async function processTarget(
       attemptNumber,
       'place_properties',
       'SUCCEEDED',
-      'Copied ant.installer.properties to installer root',
+      `Copied local host file ${job.antPropertiesPath} → installer root`,
     )
+    await writeLog(prisma, {
+      jobId: job.id,
+      targetId,
+      attemptNumber,
+      source: 'winrm',
+      level: 'INFO',
+      message: `Copied ant.installer.properties from target-local path ${job.antPropertiesPath} into extracted installer root`,
+    })
 
     // INSTALL
     await setTargetStatus(prisma, targetId, 'INSTALLING')

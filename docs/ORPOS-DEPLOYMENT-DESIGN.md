@@ -141,7 +141,7 @@ C:\OracleRetailStore\CLIENT_<DATE>
 | 1 | Machine reachable (ICMP/TCP probe as configured) | Yes |
 | 2 | WinRM session can be established | Yes |
 | 3 | Installer ZIP path exists (from worker host) | Yes |
-| 4 | `ant.installer.properties` source path exists | Yes |
+| 4 | `ant.installer.properties` exists as a **local file on the target host** | Yes |
 | 5 | Remote copy path exists or can be created | Yes |
 | 6 | Remote unzip path exists or can be created | Yes |
 | 7 | Current install path exists | Yes (for non-dry-run install; dry-run still reports) |

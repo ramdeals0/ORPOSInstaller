@@ -2,6 +2,8 @@ export const DEFAULT_INSTALL_PATH = 'C:\\OracleRetailStore\\CLIENT'
 export const DEFAULT_BACKUP_RULE = 'CLIENT_{yyyyMMdd_HHmmss}'
 export const DEFAULT_REMOTE_COPY = 'C:\\Temp\\ORPOS\\copy'
 export const DEFAULT_REMOTE_UNZIP = 'C:\\Temp\\ORPOS\\extract'
+/** ant.installer.properties lives on the target host (local path), then is copied into the extracted installer root. */
+export const DEFAULT_ANT_PROPERTIES_PATH = 'C:\\OracleRetailStore\\ant.installer.properties'
 
 export const STEP_KEYS = [
   'queued',
@@ -176,7 +178,7 @@ export const DEFAULT_SETTINGS = {
     currentInstallPath: DEFAULT_INSTALL_PATH,
     remoteCopyPath: DEFAULT_REMOTE_COPY,
     remoteUnzipPath: DEFAULT_REMOTE_UNZIP,
-    antPropertiesPath: '',
+    antPropertiesPath: DEFAULT_ANT_PROPERTIES_PATH,
     installerZipPath: '',
   },
   backupNaming: {

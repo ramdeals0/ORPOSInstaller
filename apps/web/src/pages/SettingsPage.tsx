@@ -109,10 +109,13 @@ export function SettingsPage() {
 
       <div className="panel stack">
         <h3>Default paths</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          <span className="mono">antPropertiesPath</span> is a Windows local path on each register host (not a deploy-server UNC share).
+        </p>
         <div className="form-grid">
-          {['currentInstallPath', 'remoteCopyPath', 'remoteUnzipPath'].map((key) => (
+          {['currentInstallPath', 'remoteCopyPath', 'remoteUnzipPath', 'antPropertiesPath'].map((key) => (
             <label key={key} className="full">
-              {key}
+              {key}{key === 'antPropertiesPath' ? ' (local on target)' : ''}
               <input
                 disabled={!canEdit}
                 value={defaultPaths[key] || ''}

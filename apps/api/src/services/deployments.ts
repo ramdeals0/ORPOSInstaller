@@ -41,7 +41,14 @@ export async function createDeployment(prisma: PrismaClient, input: CreateDeploy
     throw new AppError('VALIDATION', 'Installer ZIP path is required')
   }
   if (!input.antPropertiesPath?.trim()) {
-    throw new AppError('VALIDATION', 'ant.installer.properties path is required')
+    throw new AppError('VALIDATION', 'ant.installer.properties local path on target host is required')
+  }
+  // Properties path is per-target local Windows path (e.g. C:\...), not a deploy-server UNC share.
+  if (input.antPropertiesPath.trim().startsWith('\\\\')) {
+    throw new AppError(
+      'VALIDATION',
+      'ant.installer.properties must be a local path on the target host (e.g. C:\\OracleRetailStore\\ant.installer.properties), not a UNC share',
+    )
   }
 
   const machines = await prisma.machine.findMany({
@@ -190,7 +197,15 @@ export async function runPrecheckPreview(prisma: PrismaClient, input: PrecheckIn
         { key: 'reachable', ok: !unreachable, message: unreachable ? 'Host unreachable' : 'Host reachable' },
         { key: 'winrm', ok: !winrmFail, message: winrmFail ? 'WinRM session failed' : 'WinRM OK' },
         { key: 'installer_zip', ok: zipOk, message: zipOk ? 'Installer ZIP path provided' : 'Installer ZIP path missing' },
-        { key: 'ant_properties', ok: propsOk, message: propsOk ? 'Properties path provided' : 'Properties path missing' },
+        {
+          key: 'ant_properties',
+          ok: propsOk && !input.antPropertiesPath.trim().startsWith('\\\\'),
+          message: !propsOk
+            ? 'Properties path missing'
+            : input.antPropertiesPath.trim().startsWith('\\\\')
+              ? 'Must be a local path on the target host (not UNC)'
+              : `Will verify local file on host: ${input.antPropertiesPath}`,
+        },
         { key: 'remote_copy_path', ok: Boolean(input.remoteCopyPath), message: 'Remote copy path OK / creatable' },
         { key: 'remote_unzip_path', ok: Boolean(input.remoteUnzipPath), message: 'Remote unzip path OK / creatable' },
         {

@@ -4,8 +4,11 @@
 
 .DESCRIPTION
   Invoked by the Node/.NET worker against a remote session. This script is the
-  production path when DEPLOY_MODE=winrm. The Node worker currently uses a
-  simulator on non-Windows; call these functions from a Windows worker host.
+  production path when DEPLOY_MODE=winrm.
+
+  ant.installer.properties ($AntPropertiesPath) is a LOCAL path on the target
+  register host. It is verified and copied on that host into the extracted
+  installer root — not read from a UNC share on the deploy server.
 #>
 
 param(
@@ -21,6 +24,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+if ($AntPropertiesPath -match '^\\\\') {
+  throw "AntPropertiesPath must be a local path on the target host, not UNC: $AntPropertiesPath"
+}
+
 function Get-BackupName {
   return ("CLIENT_{0:yyyyMMdd_HHmmss}" -f (Get-Date))
 }
@@ -28,31 +35,35 @@ function Get-BackupName {
 function Test-OrposPrechecks {
   param($Session)
 
+  # ZIP may be on a share visible to the worker (or target). Properties are LOCAL on target.
   $zipOk = Test-Path -LiteralPath $InstallerZipPath
-  $propsOk = Test-Path -LiteralPath $AntPropertiesPath
 
   $remote = Invoke-Command -Session $Session -ScriptBlock {
-    param($CopyPath, $UnzipPath, $InstallPath)
+    param($CopyPath, $UnzipPath, $InstallPath, $PropsPath)
     $null = New-Item -ItemType Directory -Force -Path $CopyPath, $UnzipPath
     $installExists = Test-Path -LiteralPath $InstallPath
+    $propsExists = Test-Path -LiteralPath $PropsPath
     $drive = (Get-Item $InstallPath -ErrorAction SilentlyContinue)?.PSDrive?.Name
     if (-not $drive) { $drive = 'C' }
     $free = (Get-PSDrive $drive).Free
     [pscustomobject]@{
-      InstallExists = $installExists
-      FreeBytes     = $free
-      CopyPath      = $CopyPath
-      UnzipPath     = $UnzipPath
+      InstallExists  = $installExists
+      PropertiesOk   = $propsExists
+      FreeBytes      = $free
+      CopyPath       = $CopyPath
+      UnzipPath      = $UnzipPath
+      PropertiesPath = $PropsPath
     }
-  } -ArgumentList $RemoteCopyPath, $RemoteUnzipPath, $CurrentInstallPath
+  } -ArgumentList $RemoteCopyPath, $RemoteUnzipPath, $CurrentInstallPath, $AntPropertiesPath
 
   [pscustomobject]@{
-    ZipOk          = $zipOk
-    PropertiesOk   = $propsOk
-    InstallExists  = $remote.InstallExists
-    FreeBytes      = $remote.FreeBytes
-    RemoteCopyPath = $remote.CopyPath
-    RemoteUnzipPath= $remote.UnzipPath
+    ZipOk           = $zipOk
+    PropertiesOk    = $remote.PropertiesOk
+    InstallExists   = $remote.InstallExists
+    FreeBytes       = $remote.FreeBytes
+    RemoteCopyPath  = $remote.CopyPath
+    RemoteUnzipPath = $remote.UnzipPath
+    PropertiesPath  = $remote.PropertiesPath
   }
 }
 
@@ -60,7 +71,7 @@ $session = New-PSSession -ComputerName $ComputerName
 try {
   $pre = Test-OrposPrechecks -Session $session
   if (-not $pre.ZipOk) { throw "Installer ZIP missing: $InstallerZipPath" }
-  if (-not $pre.PropertiesOk) { throw "Properties missing: $AntPropertiesPath" }
+  if (-not $pre.PropertiesOk) { throw "ant.installer.properties missing on target host: $AntPropertiesPath" }
   if (-not $pre.InstallExists) { throw "Current install path missing: $CurrentInstallPath" }
 
   if ($DryRun) {
@@ -86,17 +97,23 @@ try {
     Expand-Archive -LiteralPath $Zip -DestinationPath $Dest -Force
   } -ArgumentList $remoteZip, $RemoteUnzipPath
 
+  # Copy properties from target-local path into extracted installer root (same machine)
   Invoke-Command -Session $session -ScriptBlock {
     param($ExtractRoot, $PropsPath)
+    if (-not (Test-Path -LiteralPath $PropsPath)) {
+      throw "ant.installer.properties not found on target: $PropsPath"
+    }
     $cmd = Get-ChildItem -Path $ExtractRoot -Filter 'install.cmd' -Recurse | Select-Object -First 1
     if (-not $cmd) { throw 'install.cmd not found after extract' }
-    Copy-Item -LiteralPath $PropsPath -Destination $cmd.DirectoryName -Force
+    Copy-Item -LiteralPath $PropsPath -Destination (Join-Path $cmd.DirectoryName 'ant.installer.properties') -Force
     $proc = Start-Process -FilePath $cmd.FullName -ArgumentList 'silent' -Wait -PassThru -WorkingDirectory $cmd.DirectoryName
     $log = Get-ChildItem -Path $ExtractRoot -Filter 'pos-install-*log' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     [pscustomobject]@{
       ExitCode = $proc.ExitCode
       LogPath  = $log?.FullName
       LogTail  = if ($log) { Get-Content -LiteralPath $log.FullName -Tail 80 | Out-String } else { '' }
+      PropsSource = $PropsPath
+      PropsDest   = (Join-Path $cmd.DirectoryName 'ant.installer.properties')
     }
   } -ArgumentList $RemoteUnzipPath, $AntPropertiesPath
 }

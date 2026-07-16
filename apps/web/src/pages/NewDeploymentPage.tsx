@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
+  DEFAULT_ANT_PROPERTIES_PATH,
   DEFAULT_BACKUP_RULE,
   DEFAULT_INSTALL_PATH,
   DEFAULT_REMOTE_COPY,
@@ -46,7 +47,7 @@ export function NewDeploymentPage() {
   const [form, setForm] = useState({
     releaseNumber: '13.4.9',
     installerZipPath: '\\\\fileserver\\orpos\\13.4.9\\client.zip',
-    antPropertiesPath: '\\\\fileserver\\orpos\\props\\ant.installer.properties',
+    antPropertiesPath: DEFAULT_ANT_PROPERTIES_PATH,
     remoteCopyPath: DEFAULT_REMOTE_COPY,
     remoteUnzipPath: DEFAULT_REMOTE_UNZIP,
     currentInstallPath: DEFAULT_INSTALL_PATH,
@@ -145,7 +146,13 @@ export function NewDeploymentPage() {
           <label>Release number<input value={form.releaseNumber} onChange={(e) => setForm({ ...form, releaseNumber: e.target.value })} required /></label>
           <label>Throttle (5–20)<input type="number" min={1} max={20} value={form.throttleLimit} onChange={(e) => setForm({ ...form, throttleLimit: Number(e.target.value) })} /></label>
           <label className="full">Installer ZIP path<input value={form.installerZipPath} onChange={(e) => setForm({ ...form, installerZipPath: e.target.value })} required /></label>
-          <label className="full">ant.installer.properties path<input value={form.antPropertiesPath} onChange={(e) => setForm({ ...form, antPropertiesPath: e.target.value })} required /></label>
+          <label className="full">
+            ant.installer.properties path (local on target host)
+            <input value={form.antPropertiesPath} onChange={(e) => setForm({ ...form, antPropertiesPath: e.target.value })} required />
+          </label>
+          <p className="full muted" style={{ margin: 0 }}>
+            This file must already exist on each selected register (Windows local path). The worker copies it into the extracted installer root before <span className="mono">install.cmd silent</span> — it is not pulled from a file share on the deploy server.
+          </p>
         </div>
       </div>
 
