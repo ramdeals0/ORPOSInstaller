@@ -1,12 +1,26 @@
 import bcrypt from 'bcryptjs'
 import { getPrisma } from '@orpos/db'
-import { DEFAULT_REGISTER_GROUP_RULES, DEFAULT_SETTINGS } from '@orpos/shared'
+import { DEFAULT_REGISTER_GROUP_RULES, DEFAULT_SETTINGS, STORE_CATALOG } from '@orpos/shared'
 
 /** Create default admin user / rules if the DB is empty (common local-setup miss). */
 export async function ensureSeed() {
   const prisma = getPrisma()
   const userCount = await prisma.user.count()
-  if (userCount > 0) return { seeded: false, users: userCount }
+  if (userCount > 0) {
+    // Keep store catalog warm even when users already exist
+    if ((await prisma.store.count()) === 0) {
+      for (const entry of STORE_CATALOG) {
+        await prisma.store.create({
+          data: {
+            storeCode: entry.storeCode,
+            storeNumber: entry.storeNumber,
+            name: `Store ${entry.storeNumber} (${entry.storeCode})`,
+          },
+        })
+      }
+    }
+    return { seeded: false, users: userCount }
+  }
 
   const passwordHash = await bcrypt.hash('admin123', 10)
   await prisma.user.create({
@@ -37,6 +51,18 @@ export async function ensureSeed() {
       where: { key },
       update: {},
       create: { key, valueJson: value },
+    })
+  }
+
+  for (const entry of STORE_CATALOG) {
+    await prisma.store.upsert({
+      where: { storeCode: entry.storeCode },
+      update: { storeNumber: entry.storeNumber },
+      create: {
+        storeCode: entry.storeCode,
+        storeNumber: entry.storeNumber,
+        name: `Store ${entry.storeNumber} (${entry.storeCode})`,
+      },
     })
   }
 

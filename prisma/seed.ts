@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import {
   DEFAULT_REGISTER_GROUP_RULES,
   DEFAULT_SETTINGS,
+  STORE_CATALOG,
   parseHostname,
   resolveRegisterGroup,
 } from '../packages/shared/src/index.ts'
@@ -60,42 +61,62 @@ async function main() {
     })
   }
 
-  // Sample hosts covering multiple RegisterG* ranges from application.xml
+  // Seed full store catalog: numeric id → 3-letter hostname code
+  for (const entry of STORE_CATALOG) {
+    await prisma.store.upsert({
+      where: { storeCode: entry.storeCode },
+      update: {
+        storeNumber: entry.storeNumber,
+        name: entry.name ?? `Store ${entry.storeNumber} (${entry.storeCode})`,
+        isActive: true,
+      },
+      create: {
+        storeCode: entry.storeCode,
+        storeNumber: entry.storeNumber,
+        name: entry.name ?? `Store ${entry.storeNumber} (${entry.storeCode})`,
+      },
+    })
+  }
+
+  // Sample hosts: <3-letter-code>pos<registerid>
   const sampleHosts = [
-    '1234pos001', // G1
-    '1234pos015', // G1
-    '1234pos050', // G1
-    '1234pos100', // G2
-    '1234pos110', // G3
-    '1234pos150', // G4
-    '1234pos260', // G5
-    '5678pos360', // G6
-    '5678pos470', // G7
-    '5678pos570', // G8
-    '5678pos680', // G9
-    '9012pos790', // G10
-    '9012pos796', // Attendant Station (G14)
-    '9012pos801', // SCO Register (G13)
-    '9012pos830', // G11
-    '9012pos930', // G12
-    '5678pos045', // G1 — used by simulate worker for install-fail/rollback demo
+    'APPpos001', // G1 — store 100
+    'APPpos015', // G1
+    'APPpos045', // G1 — simulate install-fail/rollback demo
+    'FDLpos001', // G1 — store 200
+    'FDLpos100', // G2
+    'MARpos110', // G3 — store 300
+    'WASpos150', // G4 — store 400
+    'FEFpos260', // G5 — store 500
+    'ALXpos360', // G6 — store 700
+    'GBEpos470', // G7 — store 800
+    'MENpos570', // G8 — store 900
+    'BEDpos680', // G9 — store 1000
+    'PLYpos790', // G10 — store 1100
+    'WAPpos796', // Attendant Station — store 1200
+    'MANpos801', // SCO Register — store 1300
+    'HUDpos830', // G11 — store 1400
+    'STPpos930', // G12 — store 1500
   ]
 
   for (const hostname of sampleHosts) {
     const parsed = parseHostname(hostname)
-    if (!parsed) continue
-    const store = await prisma.store.upsert({
-      where: { storeCode: parsed.storeCode },
-      update: {},
-      create: {
-        storeCode: parsed.storeCode,
-        name: `Store ${parsed.storeCode}`,
-      },
-    })
+    if (!parsed) {
+      console.warn(`Skipping invalid hostname: ${hostname}`)
+      continue
+    }
+    const store = await prisma.store.findUnique({ where: { storeCode: parsed.storeCode } })
+    if (!store) {
+      console.warn(`No catalog store for code ${parsed.storeCode}`)
+      continue
+    }
     const group = resolveRegisterGroup(parsed.registerId, rules)
     await prisma.machine.upsert({
       where: { hostname },
       update: {
+        storeId: store.id,
+        registerId: parsed.registerId,
+        registerIdPadded: parsed.registerIdPadded,
         registerGroupName: group,
         reachabilityStatus: 'REACHABLE',
         winrmStatus: 'OK',
@@ -116,23 +137,31 @@ async function main() {
     })
   }
 
-  // Recompute groups for every machine (including leftover inventory)
-  const allMachines = await prisma.machine.findMany()
-  let recomputed = 0
-  for (const machine of allMachines) {
-    const group = resolveRegisterGroup(machine.registerId, rules)
-    if (group !== machine.registerGroupName) {
-      await prisma.machine.update({
-        where: { id: machine.id },
-        data: { registerGroupName: group },
-      })
-      recomputed += 1
+  // Remove legacy machines that do not use 3-letter store codes (e.g. 1234pos001)
+  const machines = await prisma.machine.findMany()
+  for (const machine of machines) {
+    if (!/^[A-Za-z]{3}pos\d+/i.test(machine.hostname)) {
+      await prisma.deploymentJobTarget.deleteMany({ where: { machineId: machine.id } })
+      await prisma.machine.delete({ where: { id: machine.id } })
+    }
+  }
+
+  // Remove stores not in the 3-letter catalog
+  const catalogCodes = new Set(STORE_CATALOG.map((s) => s.storeCode))
+  for (const store of await prisma.store.findMany()) {
+    if (!catalogCodes.has(store.storeCode)) {
+      const remaining = await prisma.machine.count({ where: { storeId: store.id } })
+      if (remaining === 0) {
+        await prisma.store.delete({ where: { id: store.id } })
+      }
     }
   }
 
   console.log('Seed complete. Users: admin/admin123, operator/operator123, auditor/auditor123')
-  console.log(`Register groups: ${rules.length} (RegisterG1–G14 from ORPOS application.xml)`)
-  console.log(`Recomputed groups on ${recomputed}/${allMachines.length} machines`)
+  console.log(`Stores: ${await prisma.store.count()} (3-letter hostname codes)`)
+  console.log(`Machines: ${await prisma.machine.count()}`)
+  console.log(`Register groups: ${rules.length}`)
+  console.log('Hostname format: <CODE>pos<registerid> e.g. APPpos001')
 }
 
 main()

@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient, ReachabilityStatus, TargetStatus, WinrmStatus } from '@orpos/db'
-import { parseHostname, resolveRegisterGroup } from '@orpos/shared'
+import { parseHostname, resolveRegisterGroup, storeNumberFromCode } from '@orpos/shared'
 
 export async function getActiveGroupRules(prisma: PrismaClient) {
   return prisma.registerGroupRule.findMany({
@@ -25,12 +25,17 @@ export async function upsertMachineFromHostname(
   const rules = await getActiveGroupRules(prisma)
   const registerGroupName = resolveRegisterGroup(parsed.registerId, rules)
 
+  const storeNumber = storeNumberFromCode(parsed.storeCode) ?? null
   const store = await prisma.store.upsert({
     where: { storeCode: parsed.storeCode },
-    update: {},
+    update: {
+      storeNumber: storeNumber ?? undefined,
+      name: storeNumber != null ? `Store ${storeNumber} (${parsed.storeCode})` : `Store ${parsed.storeCode}`,
+    },
     create: {
       storeCode: parsed.storeCode,
-      name: `Store ${parsed.storeCode}`,
+      storeNumber,
+      name: storeNumber != null ? `Store ${storeNumber} (${parsed.storeCode})` : `Store ${parsed.storeCode}`,
     },
   })
 

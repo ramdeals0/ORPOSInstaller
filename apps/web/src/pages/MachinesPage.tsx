@@ -14,13 +14,13 @@ type Machine = {
   readyForDeploy: boolean
   lastDeploymentStatus?: string | null
   lastDeploymentAt?: string | null
-  store: { id: string; storeCode: string; name?: string | null }
+  store: { id: string; storeCode: string; storeNumber?: number | null; name?: string | null }
 }
 
 export function MachinesPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<Machine[]>([])
-  const [stores, setStores] = useState<Array<{ id: string; storeCode: string }>>([])
+  const [stores, setStores] = useState<Array<{ id: string; storeCode: string; storeNumber?: number | null }>>([])
   const [groups, setGroups] = useState<string[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<Machine | null>(null)
@@ -45,7 +45,7 @@ export function MachinesPage() {
   useEffect(() => {
     Promise.all([
       load(),
-      api<{ stores: Array<{ id: string; storeCode: string }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
+      api<{ stores: Array<{ id: string; storeCode: string; storeNumber?: number | null }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
       api<{ rules: Array<{ name: string }> }>('/api/v1/settings/register-group-rules').then((r) =>
         setGroups(r.rules.map((rule) => rule.name)),
       ),
@@ -103,7 +103,11 @@ export function MachinesPage() {
           <label>Store
             <select value={filters.storeId} onChange={(e) => setFilters({ ...filters, storeId: e.target.value })}>
               <option value="">All</option>
-              {stores.map((s) => <option key={s.id} value={s.id}>{s.storeCode}</option>)}
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.storeCode}{s.storeNumber != null ? ` (${s.storeNumber})` : ''}
+                </option>
+              ))}
             </select>
           </label>
           <label>Group
@@ -148,7 +152,7 @@ export function MachinesPage() {
                 <tr key={m.id}>
                   <td><input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} /></td>
                   <td><button type="button" style={{ border: 'none', background: 'none', color: 'var(--brand)', padding: 0 }} onClick={() => setDetail(m)}>{m.hostname}</button></td>
-                  <td>{m.store.storeCode}</td>
+                  <td className="mono">{m.store.storeCode}{m.store.storeNumber != null ? ` · ${m.store.storeNumber}` : ''}</td>
                   <td className="mono">{m.registerIdPadded}</td>
                   <td>{m.registerGroupName}</td>
                   <td><StatusPill value={m.reachabilityStatus} /></td>
@@ -171,7 +175,14 @@ export function MachinesPage() {
               <button type="button" onClick={() => setDetail(null)}>Close</button>
             </div>
             <div className="stack" style={{ marginTop: '1rem' }}>
-              <div><span className="muted">Store</span><div>{detail.store.storeCode} · {detail.store.name}</div></div>
+              <div>
+                <span className="muted">Store</span>
+                <div>
+                  <span className="mono">{detail.store.storeCode}</span>
+                  {detail.store.storeNumber != null ? ` · #${detail.store.storeNumber}` : ''}
+                  {detail.store.name ? ` · ${detail.store.name}` : ''}
+                </div>
+              </div>
               <div><span className="muted">Register</span><div className="mono">{detail.registerIdPadded}</div></div>
               <div><span className="muted">Group</span><div>{detail.registerGroupName}</div></div>
               <div><span className="muted">Reachability</span><div><StatusPill value={detail.reachabilityStatus} /></div></div>

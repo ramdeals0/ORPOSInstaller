@@ -15,7 +15,7 @@ type Machine = {
   hostname: string
   registerId: number
   registerGroupName: string
-  store: { id: string; storeCode: string }
+  store: { id: string; storeCode: string; storeNumber?: number | null }
 }
 
 type PrecheckResult = {
@@ -31,7 +31,7 @@ export function NewDeploymentPage() {
   const preselected = useMemo(() => (params.get('machines') || '').split(',').filter(Boolean), [params])
 
   const [machines, setMachines] = useState<Machine[]>([])
-  const [stores, setStores] = useState<Array<{ id: string; storeCode: string }>>([])
+  const [stores, setStores] = useState<Array<{ id: string; storeCode: string; storeNumber?: number | null }>>([])
   const [groups, setGroups] = useState<string[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set(preselected))
   const [storeFilter, setStoreFilter] = useState('')
@@ -57,7 +57,7 @@ export function NewDeploymentPage() {
   useEffect(() => {
     Promise.all([
       api<{ items: Machine[] }>('/api/v1/machines?pageSize=200').then((r) => setMachines(r.items)),
-      api<{ stores: Array<{ id: string; storeCode: string }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
+      api<{ stores: Array<{ id: string; storeCode: string; storeNumber?: number | null }> }>('/api/v1/stores').then((r) => setStores(r.stores)),
       api<{ rules: Array<{ name: string }> }>('/api/v1/settings/register-group-rules').then((r) =>
         setGroups(r.rules.map((rule) => rule.name)),
       ),
@@ -186,7 +186,11 @@ export function NewDeploymentPage() {
           <label>Store
             <select value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)}>
               <option value="">All stores</option>
-              {stores.map((s) => <option key={s.id} value={s.id}>{s.storeCode}</option>)}
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.storeCode}{s.storeNumber != null ? ` (${s.storeNumber})` : ''}
+                </option>
+              ))}
             </select>
           </label>
           <label>Register group
@@ -223,7 +227,7 @@ export function NewDeploymentPage() {
                     />
                   </td>
                   <td>{m.hostname}</td>
-                  <td>{m.store.storeCode}</td>
+                  <td className="mono">{m.store.storeCode}</td>
                   <td className="mono">{String(m.registerId).padStart(3, '0')}</td>
                   <td>{m.registerGroupName}</td>
                 </tr>

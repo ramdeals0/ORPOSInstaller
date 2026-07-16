@@ -17,7 +17,8 @@ export const STEP_KEYS = [
 
 export type StepKey = (typeof STEP_KEYS)[number]
 
-export const HOSTNAME_REGEX = /^(?<storeCode>.+?)pos(?<registerId>\d{3,})$/i
+/** Hostname: <3-letter-store-code>pos<registerid> e.g. APPpos001 */
+export const HOSTNAME_REGEX = /^(?<storeCode>[A-Za-z]{3})pos(?<registerId>\d{3,})$/i
 
 export interface ParsedHostname {
   storeCode: string
@@ -31,10 +32,72 @@ export function parseHostname(hostname: string): ParsedHostname | null {
   const registerId = Number(match.groups.registerId)
   if (!Number.isFinite(registerId)) return null
   return {
-    storeCode: match.groups.storeCode,
+    storeCode: match.groups.storeCode.toUpperCase(),
     registerId,
     registerIdPadded: String(registerId).padStart(3, '0'),
   }
+}
+
+/** Numeric store id → 3-letter hostname code (from store master list). */
+export const STORE_CATALOG: ReadonlyArray<{ storeNumber: number; storeCode: string; name?: string }> = [
+  { storeNumber: 100, storeCode: 'APP' },
+  { storeNumber: 200, storeCode: 'FDL' },
+  { storeNumber: 300, storeCode: 'MAR' },
+  { storeNumber: 400, storeCode: 'WAS' },
+  { storeNumber: 500, storeCode: 'FEF' },
+  { storeNumber: 700, storeCode: 'ALX' },
+  { storeNumber: 800, storeCode: 'GBE' },
+  { storeNumber: 900, storeCode: 'MEN' },
+  { storeNumber: 1000, storeCode: 'BED' },
+  { storeNumber: 1100, storeCode: 'PLY' },
+  { storeNumber: 1200, storeCode: 'WAP' },
+  { storeNumber: 1300, storeCode: 'MAN' },
+  { storeNumber: 1400, storeCode: 'HUD' },
+  { storeNumber: 1500, storeCode: 'STP' },
+  { storeNumber: 1600, storeCode: 'GER' },
+  { storeNumber: 1700, storeCode: 'OSH' },
+  { storeNumber: 1800, storeCode: 'GBW' },
+  { storeNumber: 1900, storeCode: 'ANT' },
+  { storeNumber: 2000, storeCode: 'CLV' },
+  { storeNumber: 2100, storeCode: 'STC' },
+  { storeNumber: 2200, storeCode: 'ROC' },
+  { storeNumber: 2300, storeCode: 'BAX' },
+  { storeNumber: 2400, storeCode: 'BRP' },
+  { storeNumber: 2500, storeCode: 'LKE' },
+  { storeNumber: 2600, storeCode: 'WIN' },
+  { storeNumber: 2700, storeCode: 'OAK' },
+  { storeNumber: 2800, storeCode: 'FAR' },
+  { storeNumber: 2900, storeCode: 'MSC' },
+  { storeNumber: 3000, storeCode: 'OWT' },
+  { storeNumber: 3100, storeCode: 'BLN' },
+  { storeNumber: 3200, storeCode: 'CAR' },
+  { storeNumber: 3300, storeCode: 'AKY' },
+  { storeNumber: 3400, storeCode: 'CMB' },
+  { storeNumber: 3500, storeCode: 'MKO' },
+  { storeNumber: 3600, storeCode: 'HRM' },
+  { storeNumber: 3700, storeCode: 'MTO' },
+  { storeNumber: 5000, storeCode: 'OCO' },
+  { storeNumber: 5100, storeCode: 'SXI' },
+  { storeNumber: 5200, storeCode: 'EAU' },
+  { storeNumber: 5300, storeCode: 'DEF' },
+  { storeNumber: 5400, storeCode: 'DEV' },
+  { storeNumber: 5500, storeCode: 'SXF' },
+  { storeNumber: 5600, storeCode: 'CFI' },
+  { storeNumber: 5800, storeCode: 'CRI' },
+  { storeNumber: 5900, storeCode: 'WKE' },
+  { storeNumber: 6200, storeCode: 'WBD' },
+  { storeNumber: 6400, storeCode: 'RCS' },
+  { storeNumber: 6500, storeCode: 'HST' },
+  { storeNumber: 6600, storeCode: 'MSK' },
+  { storeNumber: 6700, storeCode: 'BSK' },
+]
+
+export function storeCodeFromNumber(storeNumber: number): string | undefined {
+  return STORE_CATALOG.find((s) => s.storeNumber === storeNumber)?.storeCode
+}
+
+export function storeNumberFromCode(storeCode: string): number | undefined {
+  return STORE_CATALOG.find((s) => s.storeCode === storeCode.toUpperCase())?.storeNumber
 }
 
 export function resolveRegisterGroup(

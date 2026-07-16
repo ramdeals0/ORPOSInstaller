@@ -102,14 +102,17 @@ model User {
 }
 
 model Store {
-  id        String   @id @default(cuid())
-  storeCode String   @unique
-  name      String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  storeCode   String   @unique // 3-letter hostname prefix, e.g. APP
+  storeNumber Int?     @unique // numeric store id, e.g. 100
+  name        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   machines Machine[]
+
+  @@index([storeNumber])
 }
 
 model RegisterGroupRule {

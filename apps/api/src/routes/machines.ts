@@ -14,13 +14,16 @@ export async function machineRoutes(app: FastifyInstance) {
   const prisma = getPrisma()
 
   app.get('/api/v1/stores', { preHandler: requireAuth }, async () => {
-    const stores = await prisma.store.findMany({ orderBy: { storeCode: 'asc' } })
+    const stores = await prisma.store.findMany({
+      orderBy: [{ storeNumber: 'asc' }, { storeCode: 'asc' }],
+    })
     return { stores }
   })
 
   app.post('/api/v1/stores', { preHandler: requireAdmin }, async (request) => {
     const body = z.object({
-      storeCode: z.string().min(1),
+      storeCode: z.string().length(3).transform((s) => s.toUpperCase()),
+      storeNumber: z.number().int().optional(),
       name: z.string().optional(),
       isActive: z.boolean().optional(),
     }).parse(request.body)
@@ -31,6 +34,7 @@ export async function machineRoutes(app: FastifyInstance) {
   app.patch('/api/v1/stores/:id', { preHandler: requireAdmin }, async (request) => {
     const { id } = request.params as { id: string }
     const body = z.object({
+      storeNumber: z.number().int().nullable().optional(),
       name: z.string().optional(),
       isActive: z.boolean().optional(),
     }).parse(request.body)

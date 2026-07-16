@@ -45,6 +45,16 @@ npm run dev
 - `DEPLOY_MODE=simulate` (default): worker simulates WinRM steps, log verdicts, and rollback. Register `045` fails install then rolls back for demos.
 - `DEPLOY_MODE=winrm`: use on a Windows worker host with the PowerShell script against real registers.
 
+## Hostname / store codes
+
+Registers use a **3-letter store code** in the hostname:
+
+```text
+<CODE>pos<registerid>   e.g. APPpos001  (store 100 / APP)
+```
+
+Store master list (numeric id → code) lives in `packages/shared` as `STORE_CATALOG` and is seeded into the `Store` table.
+
 ## Design reference
 
 See [docs/ORPOS-DEPLOYMENT-DESIGN.md](./docs/ORPOS-DEPLOYMENT-DESIGN.md) for PRD, schema, API contracts, and UX specs.
